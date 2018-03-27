@@ -316,11 +316,11 @@ static void processComplexBlock(pugi::xml_node clb_block,
 }
 
 /**
- * This processes a set of key-value pairs in the XML e.g. block attributes or parameters,
+ * This processes a set of key-value pairs in the XML e.g. block attributes, parameters or metadata,
  * which must be of the form <attributes><attribute name="attrName">attrValue</attribute> ... </attributes>
  */
-template<typename T> void processAttrsParams(pugi::xml_node Parent, const char * child_name, T &atom_net_range,
-        const pugiutil::loc_data& loc_data) {
+template<typename T> void processAttrsParams(pugi::xml_node Parent, const char * child_name, const char * input_name,
+	    T &atom_net_range, const pugiutil::loc_data& loc_data) {
     std::map<std::string, std::string> kvs;
     if (Parent) {
         for (auto Cur = pugiutil::get_first_child(Parent, child_name, loc_data, pugiutil::OPTIONAL); Cur; Cur = Cur.next_sibling(child_name)) {
@@ -333,8 +333,8 @@ template<typename T> void processAttrsParams(pugi::xml_node Parent, const char *
                     if (bitem.second != cval) {
                         // Found in AtomNetlist range, but values don't match
                         vpr_throw(VPR_ERROR_NET_F, netlist_file_name, loc_data.line(Cur),
-                                ".net file and .blif file do not match, %s %s set to \"%s\" in .net file but \"%s\" in .blif file.\n",
-                                child_name, cname.c_str(), cval.c_str(), bitem.second.c_str());
+                                ".net file and %s file do not match, %s %s set to \"%s\" in .net file but \"%s\" in %s file.\n",
+                                input_name, child_name, cname.c_str(), cval.c_str(), bitem.second.c_str(), input_name);
                     }
                     found = true;
                     break;
@@ -342,8 +342,8 @@ template<typename T> void processAttrsParams(pugi::xml_node Parent, const char *
             }
             if (!found) // Not found in AtomNetlist range
                 vpr_throw(VPR_ERROR_NET_F, netlist_file_name, loc_data.line(Cur),
-                        ".net file and .blif file do not match, %s %s missing in .blif file.\n",
-                        child_name, cname.c_str());
+                        ".net file and %s file do not match, %s %s missing in %s file.\n",
+                        input_name, child_name, cname.c_str(), input_name);
             kvs[cname] = cval;
         }
     }
@@ -351,8 +351,8 @@ template<typename T> void processAttrsParams(pugi::xml_node Parent, const char *
     for (auto bitem : atom_net_range) {
         if(kvs.find(bitem.first) == kvs.end())
             vpr_throw(VPR_ERROR_NET_F, netlist_file_name, loc_data.line(Parent),
-                    ".net file and .blif file do not match, %s %s missing in .net file.\n",
-                    child_name, bitem.first.c_str());
+                    ".net file and %s file do not match, %s %s missing in .net file.\n",
+                    input_name, child_name, bitem.first.c_str());
     }
 }
 
@@ -386,6 +386,7 @@ static void processPb(pugi::xml_node Parent, const ClusterBlockId index,
 
     auto attrs = pugiutil::get_single_child(Parent, "attributes", loc_data, pugiutil::OPTIONAL);
     auto params = pugiutil::get_single_child(Parent, "parameters", loc_data, pugiutil::OPTIONAL);
+	auto metas = pugiutil::get_single_child(Parent, "metadata", loc_data, pugiutil::OPTIONAL);
 
 	pb_type = pb->pb_graph_node->pb_type;
 
@@ -406,6 +407,8 @@ static void processPb(pugi::xml_node Parent, const ClusterBlockId index,
 		VTR_ASSERT(clb_nlist->block_ports(index).size() == (unsigned)pb_type->num_ports);
 	}
 
+	processAttrsParams(metas, "meta", "arch", pb_type->metadata, loc_data);
+
 	if (pb_type->num_modes == 0) {
         /* A primitive type */
         AtomBlockId blk_id = atom_ctx.nlist.find_block(pb->name);
@@ -422,8 +425,8 @@ static void processPb(pugi::xml_node Parent, const ClusterBlockId index,
 
         auto atom_attrs = atom_ctx.nlist.block_attrs(blk_id);
         auto atom_params = atom_ctx.nlist.block_params(blk_id);
-        processAttrsParams(attrs, "attribute", atom_attrs, loc_data);
-        processAttrsParams(params, "parameter", atom_params, loc_data);
+        processAttrsParams(attrs, "attribute", ".blif", atom_attrs, loc_data);
+        processAttrsParams(params, "parameter", ".blif", atom_params, loc_data);
 
 		(*num_primitives)++;
 	} else {
