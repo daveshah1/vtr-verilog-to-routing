@@ -352,6 +352,13 @@ static void clustering_xml_block(pugi::xml_node parent_node, t_type_ptr type, t_
 	block_node.append_attribute("name") = pb->name;
 	block_node.append_attribute("instance") = vtr::string_fmt("%s[%d]", pb_type->name, pb_index).c_str();
 
+	pugi::xml_node md_node = block_node.append_child("metadata");
+	for (const auto& meta : pb_type->metadata) {
+		pugi::xml_node meta_node = md_node.append_child("meta");
+		meta_node.append_attribute("name") = meta.first.c_str();
+		meta_node.text().set(meta.second.c_str());
+	}
+
 	if (pb_type->num_modes > 0) {
 		block_node.append_attribute("mode") = mode->name;
 	} else {
