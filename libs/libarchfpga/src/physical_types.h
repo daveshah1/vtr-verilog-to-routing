@@ -564,6 +564,9 @@ struct t_pb_type {
 
 	/* Power related members */
 	t_pb_type_power * pb_type_power = nullptr;
+
+	/* Arbitrary metadata, for bitstream generation usage etc. */
+	std::map<std::string, std::string> metadata;
 };
 
 /** Describes an operational mode of a clustered logic block

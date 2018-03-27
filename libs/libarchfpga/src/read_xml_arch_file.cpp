@@ -930,7 +930,7 @@ static void ProcessPb_Type(pugi::xml_node Parent, t_pb_type * pb_type,
     bool is_root_pb_type = !(mode != nullptr && mode->parent_pb_type != nullptr);
     bool is_leaf_pb_type = bool(get_attribute(Parent, "blif_model", loc_data, OPTIONAL));
 
-    std::vector<std::string> children_to_expect = {"input", "output", "clock", "mode", "power"};
+    std::vector<std::string> children_to_expect = {"input", "output", "clock", "mode", "power", "metadata"};
     if (!is_leaf_pb_type) {
         //Non-leafs may have a model/pb_type children
         children_to_expect.push_back("model");
@@ -1087,6 +1087,19 @@ static void ProcessPb_Type(pugi::xml_node Parent, t_pb_type * pb_type,
 					pb_type->ports[i].is_clock
 							&& pb_type->ports[i].type == IN_PORT);
 			pb_type->num_clock_pins += pb_type->ports[i].num_pins;
+		}
+	}
+
+	// Process metadata
+	auto metadata = get_first_child(Parent, "metadata", loc_data, OPTIONAL);
+	if (metadata) {
+		expect_only_children(metadata, {"meta"}, loc_data);
+		Cur = get_first_child(metadata, "meta", loc_data);
+		while (Cur != nullptr) {
+			std::string cname = pugiutil::get_attribute(Cur, "name", loc_data).value();
+			std::string cval = Cur.text().get();
+			pb_type->metadata[cname] = cval;
+			Cur = Cur.next_sibling(Cur.name());
 		}
 	}
 
