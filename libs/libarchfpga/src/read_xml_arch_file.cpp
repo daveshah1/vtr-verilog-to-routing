@@ -930,7 +930,7 @@ static void ProcessPb_Type(pugi::xml_node Parent, t_pb_type * pb_type,
     bool is_root_pb_type = !(mode != nullptr && mode->parent_pb_type != nullptr);
     bool is_leaf_pb_type = bool(get_attribute(Parent, "blif_model", loc_data, OPTIONAL));
 
-    std::vector<std::string> children_to_expect = {"input", "output", "clock", "mode", "power"};
+    std::vector<std::string> children_to_expect = {"input", "output", "clock", "mode", "power", "attributes", "parameters"};
     if (!is_leaf_pb_type) {
         //Non-leafs may have a model/pb_type children
         children_to_expect.push_back("model");
@@ -1029,6 +1029,26 @@ static void ProcessPb_Type(pugi::xml_node Parent, t_pb_type * pb_type,
 		}
 	}
 
+	/* Read attributes and parameters */
+	auto Attrs = get_first_child(Parent, "attributes", loc_data, OPTIONAL);
+	if (Attrs) {
+		Cur = get_first_child(Attrs, "attribute", loc_data, OPTIONAL);
+		while (Cur) {
+			std::string name = pugiutil::get_attribute(Cur, "name", loc_data).value();
+			pb_type->attrs[name] = Cur.text().get();
+			Cur = Cur.next_sibling(Cur.name()); 
+		}
+	}
+
+	auto Params = get_first_child(Parent, "parameters", loc_data, OPTIONAL);
+	if (Params) {
+		Cur = get_first_child(Attrs, "parameter", loc_data, OPTIONAL);
+		while (Cur) {
+			std::string name = pugiutil::get_attribute(Cur, "name", loc_data).value();
+			pb_type->params[name] = Cur.text().get();
+			Cur = Cur.next_sibling(Cur.name()); 
+		}
+	}
 
 	/* Initialize Power Structure */
 	pb_type->pb_type_power = (t_pb_type_power*) vtr::calloc(1,

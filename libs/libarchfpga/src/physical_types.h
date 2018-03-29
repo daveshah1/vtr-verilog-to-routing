@@ -564,6 +564,11 @@ struct t_pb_type {
 
 	/* Power related members */
 	t_pb_type_power * pb_type_power = nullptr;
+
+	/* Arbitrary metadata. These will be overriden by data from the EBLIF file
+	if specified. */
+	std::map<std::string, std::string> attrs;
+	std::map<std::string, std::string> params;
 };
 
 /** Describes an operational mode of a clustered logic block
